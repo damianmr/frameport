@@ -1,0 +1,28 @@
+{
+  "name": "twoway-iframe",
+  "version": "1.0.0",
+  "description": "Two way channel communication for iframes",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:dev": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damianmr/twoway-iframe.git"
+  },
+  "keywords": [
+    "iframe",
+    "postMessage"
+  ],
+  "author": "Damian Mendez Romera",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/damianmr/twoway-iframe/issues"
+  },
+  "homepage": "https://github.com/damianmr/twoway-iframe#readme",
+  "devDependencies": {
+    "tiny-emitter": "2.1.0",
+    "vitest": "^0.24.5"
+  }
+}
