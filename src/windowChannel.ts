@@ -12,9 +12,13 @@ export type ChannelMessage<Payload> = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type MessageEventWithData = MessageEvent & { data: ChannelMessage<any> };
-export type WindowMessageHandler = (windowMessage: MessageEventWithData) => void;
+export type WindowMessageHandler = (
+  windowMessage: MessageEventWithData
+) => void;
 
-export type ChannelMessageHandler<Payload> = (message: ChannelMessage<Payload>) => void;
+export type ChannelMessageHandler<Payload> = (
+  message: ChannelMessage<Payload>
+) => void;
 
 export type RemoveListenerFunction = () => void;
 
@@ -49,7 +53,9 @@ export type Channel = {
    */
   respond: <RequestPayload, ResponsePayload>(
     messageName: string,
-    handleRequest: (incomingRequestPayload: RequestPayload) => Promise<ResponsePayload>
+    handleRequest: (
+      incomingRequestPayload: RequestPayload
+    ) => Promise<ResponsePayload>
   ) => RemoveListenerFunction;
 
   /**
@@ -59,7 +65,11 @@ export type Channel = {
    * The `requestId` is provided automatically when you perform a `#request`, you shouldn't try
    * to use it directly.
    */
-  send: <Payload>(messageName: string, payload?: Payload, requestId?: string) => void;
+  send: <Payload>(
+    messageName: string,
+    payload?: Payload,
+    requestId?: string
+  ) => void;
 
   /**
    * Makes this channel listen to a certain message posted in the current window object.
@@ -96,7 +106,9 @@ export default function createChannel(config: ChannelConfig): Channel {
 
   function validateMessageName(messageName: string) {
     if (!config.availableMessages.includes(messageName)) {
-      throw new Error(`Unknown message "${messageName}" to send/listen in channel "${config.id}"`);
+      throw new Error(
+        `Unknown message "${messageName}" to send/listen in channel "${config.id}"`
+      );
     }
   }
 
@@ -113,14 +125,17 @@ export default function createChannel(config: ChannelConfig): Channel {
     messageName: string,
     handler: ChannelMessageHandler<Payload>
   ): WindowMessageHandler {
-    return function incomingMessageHandler(rawWindowMessageEvent: MessageEventWithData) {
-      const channelMessageMaybe: ChannelMessage<Payload> = rawWindowMessageEvent.data || {};
+    return function incomingMessageHandler(
+      rawWindowMessageEvent: MessageEventWithData
+    ) {
+      const channelMessageMaybe: ChannelMessage<Payload> =
+        rawWindowMessageEvent.data || {};
       // We need to make sure the data is relevant to the channel. It might be a message coming
       // from an ad-service, a tracking script, etc. Those will have different properties in the
       // `data` member.
       let isChannelMessage = false;
       try {
-        isChannelMessage = ['channelId', 'messageName', 'payload'].every(
+        isChannelMessage = ["channelId", "messageName", "payload"].every(
           (m) => m in channelMessageMaybe
         );
       } catch {
@@ -144,29 +159,50 @@ export default function createChannel(config: ChannelConfig): Channel {
   return {
     respond<RequestPayload, ResponsePayload>(
       messageName: string,
-      handleRequest: (incomingRequestPayload: RequestPayload) => Promise<ResponsePayload>
+      handleRequest: (
+        incomingRequestPayload: RequestPayload
+      ) => Promise<ResponsePayload>
     ) {
       validateMessageName(messageName);
 
-      return this.listen<RequestPayload>(messageName, async (incomingMessage) => {
-        const responsePayload: ResponsePayload = await handleRequest(incomingMessage.payload);
-        this.send<ResponsePayload>(messageName, responsePayload, incomingMessage.requestId);
-      });
+      return this.listen<RequestPayload>(
+        messageName,
+        async (incomingMessage) => {
+          const responsePayload: ResponsePayload = await handleRequest(
+            incomingMessage.payload
+          );
+          this.send<ResponsePayload>(
+            messageName,
+            responsePayload,
+            incomingMessage.requestId
+          );
+        }
+      );
     },
 
-    send: <Payload>(messageName: string, payload?: Payload, requestId?: string) => {
+    send: <Payload>(
+      messageName: string,
+      payload?: Payload,
+      requestId?: string
+    ) => {
       validateMessageName(messageName);
       config.postMessage({
         channelId: config.id,
         messageName,
         requestId: requestId,
-        payload: payload ? payload : null
+        payload: payload ? payload : null,
       });
     },
 
-    listen: <Payload>(messageName: string, handler: (message: ChannelMessage<Payload>) => void) => {
+    listen: <Payload>(
+      messageName: string,
+      handler: (message: ChannelMessage<Payload>) => void
+    ) => {
       validateMessageName(messageName);
-      const windowEventHandler = buildIncomingMessageHandler<Payload>(messageName, handler);
+      const windowEventHandler = buildIncomingMessageHandler<Payload>(
+        messageName,
+        handler
+      );
       const removeListener = () => {
         config.removeEventListener(windowEventHandler);
       };
@@ -174,7 +210,7 @@ export default function createChannel(config: ChannelConfig): Channel {
       return removeListener;
     },
 
-    request: function<RequestPayload, ResponsePayload>(
+    request: function <RequestPayload, ResponsePayload>(
       messageName: string,
       requestConfig: RequestConfig,
       payload?: RequestPayload
@@ -183,26 +219,30 @@ export default function createChannel(config: ChannelConfig): Channel {
       return new Promise((resolve, reject) => {
         const requestId = genId();
         let timeoutId = -1;
-        const requestResponseHandler = buildIncomingMessageHandler<ResponsePayload>(
-          messageName,
-          (channelMessage: ChannelMessage<ResponsePayload>) => {
-            if (channelMessage.requestId && channelMessage.requestId === requestId) {
-              config.clearTimeout(timeoutId);
-              config.removeEventListener(requestResponseHandler);
-              resolve(channelMessage);
+        const requestResponseHandler =
+          buildIncomingMessageHandler<ResponsePayload>(
+            messageName,
+            (channelMessage: ChannelMessage<ResponsePayload>) => {
+              if (
+                channelMessage.requestId &&
+                channelMessage.requestId === requestId
+              ) {
+                config.clearTimeout(timeoutId);
+                config.removeEventListener(requestResponseHandler);
+                resolve(channelMessage);
+              }
             }
-          }
-        );
+          );
 
         config.addEventListener(requestResponseHandler);
 
         timeoutId = config.setTimeout(() => {
           reject({
-            status: 'timeout',
+            status: "timeout",
             messageName,
             requestId,
             channelId: config.id,
-            payload: payload || null
+            payload: payload || null,
           });
           config.removeEventListener(requestResponseHandler);
         }, requestConfig.timeout);
@@ -211,10 +251,10 @@ export default function createChannel(config: ChannelConfig): Channel {
           channelId: config.id,
           messageName,
           requestId,
-          payload: payload ? payload : null
+          payload: payload ? payload : null,
         });
       });
-    }
+    },
   };
 }
 
@@ -239,7 +279,7 @@ export default function createChannel(config: ChannelConfig): Channel {
  */
 export function defaultIFrameGateway({
   currentWindow,
-  targetWindow
+  targetWindow,
 }: {
   currentWindow: Window;
   targetWindow: Window;
@@ -247,19 +287,19 @@ export function defaultIFrameGateway({
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     postMessage: (message: ChannelMessage<any>) => {
-      targetWindow.postMessage(message, '*');
+      targetWindow.postMessage(message, "*");
     },
 
     addEventListener: (windowMessageHandler: WindowMessageHandler) => {
-      currentWindow.addEventListener('message', windowMessageHandler);
+      currentWindow.addEventListener("message", windowMessageHandler);
     },
 
     removeEventListener: (windowMessageHandler: WindowMessageHandler) => {
-      currentWindow.removeEventListener('message', windowMessageHandler);
+      currentWindow.removeEventListener("message", windowMessageHandler);
     },
 
     setTimeout: currentWindow.setTimeout.bind(currentWindow),
 
-    clearTimeout: currentWindow.clearTimeout.bind(currentWindow)
+    clearTimeout: currentWindow.clearTimeout.bind(currentWindow),
   };
 }
