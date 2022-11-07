@@ -31,7 +31,7 @@ export default function lazyChannel(partialConfig: PartialConfig): LazyChannel {
   return {
     init: (config): Channel => {
       const windowChannel = createChannel({ ...partialConfig, ...config });
-      const runAsync = new Promise((resolve) => resolve());
+      const runAsync = new Promise<void>((resolve) => resolve());
       runAsync.then(() => {
         for (const handler of listeners) {
           handler(windowChannel);
