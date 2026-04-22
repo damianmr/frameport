@@ -1,10 +1,11 @@
 import {
   default as createChannel,
   ChannelMessage,
+  MessageEventWithData,
   WindowMessageHandler,
 } from "../windowChannel";
 import { TinyEmitter } from "tiny-emitter";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, Mock } from "vitest";
 
 async function sleep(n: number): Promise<void> {
   return new Promise<void>((resolve) => {
@@ -415,8 +416,10 @@ describe("windowChannel", () => {
 
     it("ignores unknown messages (with props other than the ones defined in #ChannelMessage)", async () => {
       const pubSub = pubSubContext();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let preHandlerThatChecksMessage: vi.Mock<any, any> | null = null;
+      let preHandlerThatChecksMessage: Mock<
+        [ev: MessageEventWithData],
+        void
+      > | null = null;
 
       const listenStub = (windowMessageHandler: WindowMessageHandler) => {
         preHandlerThatChecksMessage = vi.fn((ev) => windowMessageHandler(ev));

@@ -1,4 +1,8 @@
-import createChannel, { ChannelConfig, Channel } from "./windowChannel";
+import createChannel, {
+  ChannelConfig,
+  Channel,
+  ChannelConfigHandlers,
+} from "./windowChannel";
 
 export type PartialConfig = Pick<ChannelConfig, "id" | "availableMessages">;
 
@@ -12,16 +16,7 @@ type OnInitCallback = (initializedChannel: Channel) => void;
  * to events once the channel has been initialized.
  */
 export type LazyChannel = {
-  init: (
-    config: Pick<
-      ChannelConfig,
-      | "postMessage"
-      | "addEventListener"
-      | "removeEventListener"
-      | "setTimeout"
-      | "clearTimeout"
-    >
-  ) => Channel;
+  init: (config: ChannelConfigHandlers) => Channel;
   onInit: (onInitCallback: OnInitCallback) => void;
 };
 

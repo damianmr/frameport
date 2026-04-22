@@ -1,8 +1,3 @@
-function getRequestIdGenerator() {
-  let n = 1;
-  return (): string => `req${n++}`;
-}
-
 export type ChannelMessage<Payload> = {
   channelId: string;
   messageName: string;
@@ -10,8 +5,9 @@ export type ChannelMessage<Payload> = {
   requestId?: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type MessageEventWithData = MessageEvent & { data: ChannelMessage<any> };
+export type MessageEventWithData = MessageEvent & {
+  data: ChannelMessage<unknown>;
+};
 export type WindowMessageHandler = (
   windowMessage: MessageEventWithData
 ) => void;
@@ -22,15 +18,17 @@ export type ChannelMessageHandler<Payload> = (
 
 export type RemoveListenerFunction = () => void;
 
-export type ChannelConfig = {
-  id: string;
-  availableMessages: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  postMessage: (message: ChannelMessage<any>) => void;
+export type ChannelConfigHandlers = {
+  postMessage: (message: ChannelMessage<unknown>) => void;
   addEventListener: (windowMessageHandler: WindowMessageHandler) => void;
   removeEventListener: (windowMessageHandler: WindowMessageHandler) => void;
-  setTimeout: (handler: Function, timeout?: number) => number;
+  setTimeout: (handler: () => void, timeout?: number) => number;
   clearTimeout: (handle: number) => void;
+};
+
+export type ChannelConfig = ChannelConfigHandlers & {
+  id: string;
+  availableMessages: string[];
 };
 
 export type RequestConfig = {
@@ -93,6 +91,11 @@ export type Channel = {
     payload?: RequestPayload
   ) => Promise<ChannelMessage<ResponsePayload>>;
 };
+
+function getRequestIdGenerator() {
+  let n = 1;
+  return (): string => `req${n++}`;
+}
 
 /**
  * Creates a communication channel using the given config.
@@ -258,48 +261,4 @@ export default function createChannel(config: ChannelConfig): Channel {
   };
 }
 
-/**
- * A works-out-of-the-box implementation of the gateway needed by a `Channel`
- * that creates the proper methods using two window objects: the current window
- * and the target window.
- *
- * The current window is just the `window` Javascript object present everywhere.
- * Thet target window is the result of accesing the property `contentWindow` in any
- * <iframe> element.
- *
- * A good way to get a reference of the target window is to setup an `onload` handler
- * in the iframe tag. Something like this:
- *
- * window.handleLoad = (theIframe) => {
- *   const targetWindow = theIframe.contentWindow;
- *   // now store this reference somewhere and pass it to this method.
- * }
- *
- * <iframe onload="handleLoad(this)" src="..."></iframe>
- */
-export function defaultIFrameGateway({
-  currentWindow,
-  targetWindow,
-}: {
-  currentWindow: Window;
-  targetWindow: Window;
-}) {
-  return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    postMessage: (message: ChannelMessage<any>) => {
-      targetWindow.postMessage(message, "*");
-    },
-
-    addEventListener: (windowMessageHandler: WindowMessageHandler) => {
-      currentWindow.addEventListener("message", windowMessageHandler);
-    },
-
-    removeEventListener: (windowMessageHandler: WindowMessageHandler) => {
-      currentWindow.removeEventListener("message", windowMessageHandler);
-    },
-
-    setTimeout: currentWindow.setTimeout.bind(currentWindow),
-
-    clearTimeout: currentWindow.clearTimeout.bind(currentWindow),
-  };
-}
+export { default as defaultIFrameGateway } from "./defaultIFrameGateway";
