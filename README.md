@@ -10,7 +10,18 @@ Tiny request/response channels for `window.postMessage`.
 - `send` / `listen` for one-way messages
 - `request` / `respond` for async request-response flows
 - per-request timeouts
+- a default iframe gateway for `window` + `contentWindow`
 - a `lazyChannel` helper for setups where the target window is not ready yet
+
+## Demo
+
+There is a plain HTML demo under `docs/` that uses a compiled browser bundle of the library.
+
+```bash
+npm run build:website
+```
+
+Then open `docs/index.html` in a browser.
 
 ## Why
 

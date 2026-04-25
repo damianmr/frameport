@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frameport JS</title>
+    <link rel="stylesheet" href="./demo.css" />
+    <script src="./frameport.js" defer></script>
+    <script src="./demo.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="top-nav card">
+        <div class="top-nav-brand">Frameport JS</div>
+        <div class="top-nav-links">
+          <a href="#home">Home</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#demo">Demo</a>
+          <a href="#code-examples">Code examples</a>
+        </div>
+      </nav>
+
+      <header class="hero card" id="home">
+        <div class="hero-copy-block">
+          <h1 class="hero-title">
+            Turn <span class="hero-title-accent">postMessage</span> into real
+            request/response workflows
+          </h1>
+          <p class="hero-copy">
+            <code>frameport</code> is a zero-dependency library that makes
+            parent/iframe communication feel predictable instead of ad hoc. It
+            wraps <code>window.postMessage</code> in a small channel API so you
+            can move real behavior between windows without re-solving message
+            names, reply handling, timeout behavior, and late iframe startup
+            every time.
+          </p>
+        </div>
+
+        <div class="hero-scenarios">
+          <p class="hero-scenarios-lead">
+            That makes it a strong fit when you want to:
+          </p>
+          <div class="scenario-list">
+            <div class="scenario-item">
+              <strong>Keep parent and iframe in sync</strong>
+              <span
+                >Push updates such as theme changes, ready signals, or host
+                state across windows without inventing a new message contract
+                for every feature.</span
+              >
+            </div>
+            <div class="scenario-item">
+              <strong>Ask the other side for data</strong>
+              <span>
+                Treat cross-window communication more like a small API call when
+                the parent or child needs configuration, profile data, or
+                computed results.
+              </span>
+            </div>
+            <div class="scenario-item">
+              <strong>Start safely when the iframe loads later</strong>
+              <span>
+                Prepare the communication flow early, then connect it as soon as
+                the embedded window becomes available.
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="card quickstart-section" id="quickstart">
+        <div class="section-heading">
+          <h2>Quickstart</h2>
+          <p>
+            This is the absolute minimum setup for a parent page and an iframe
+            to talk through <code>frameport</code>. The parent uses
+            <code>lazyChannel()</code>, the child sends one simple boot message,
+            and the parent performs one simple request that the child answers.
+          </p>
+        </div>
+
+        <div class="quickstart-callout">
+          Use the same <code>id</code> and the same
+          <code>availableMessages</code> on both sides.
+        </div>
+
+        <div class="quickstart-html-grid">
+          <article class="quickstart-card">
+            <div class="example-header">
+              <span class="example-tag">Parent side</span>
+              <h3>Minimal parent HTML</h3>
+            </div>
+            <pre
+              class="example-code"
+              data-language="html"
+            ><code>&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;body&gt;
+    &lt;iframe id="quickstart-frame" src="./child.html"&gt;&lt;/iframe&gt;
+
+    &lt;script src="./frameport.js"&gt;&lt;/script&gt;
+    &lt;script src="./parent.js"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+          </article>
+
+          <article class="quickstart-card">
+            <div class="example-header">
+              <span class="example-tag">Iframe side</span>
+              <h3>Minimal iframe HTML</h3>
+            </div>
+            <pre
+              class="example-code"
+              data-language="html"
+            ><code>&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;body&gt;
+    &lt;div&gt;Iframe page UI&lt;/div&gt;
+
+    &lt;script src="./frameport.js"&gt;&lt;/script&gt;
+    &lt;script src="./child.js"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+          </article>
+        </div>
+
+        <div class="quickstart-grid">
+          <article class="quickstart-card">
+            <div class="example-header">
+              <span class="example-tag">Parent side</span>
+              <h3>Minimal <code>parent.js</code></h3>
+            </div>
+            <pre
+              class="example-code"
+            ><code>const iframe = document.getElementById("quickstart-frame");
+
+// Parent page: define the channel before the iframe is ready.
+const pendingChannel = frameport.lazyChannel({
+  id: "quickstart-demo",
+  availableMessages: ["child-ready", "get-answer"],
+});
+
+pendingChannel.onInit(async function (channel) {
+  // Listen for a simple boot message from the child.
+  channel.listen("child-ready", function (message) {
+    console.log("Child says:", message.payload.text);
+  });
+
+  // Ask the child to answer one simple request.
+  const response = await channel.request(
+    "get-answer",
+    { timeout: 2000 },
+    { question: "Hello from parent" }
+  );
+
+  console.log("Child answered:", response.payload.text);
+});
+
+// Connect the real iframe transport once contentWindow exists.
+iframe.addEventListener("load", function () {
+  if (!iframe.contentWindow) {
+    return;
+  }
+
+  pendingChannel.init(
+    frameport.defaultIFrameGateway({
+      currentWindow: window,
+      targetWindow: iframe.contentWindow,
+    })
+  );
+});</code></pre>
+          </article>
+
+          <article class="quickstart-card">
+            <div class="example-header">
+              <span class="example-tag">Iframe side</span>
+              <h3>Minimal <code>child.js</code></h3>
+            </div>
+            <pre
+              class="example-code"
+            ><code>// child.js: create the channel immediately.
+const channel = frameport.createChannel({
+  id: "quickstart-demo",
+  availableMessages: ["child-ready", "get-answer"],
+  ...frameport.defaultIFrameGateway({
+    currentWindow: window,
+    targetWindow: window.parent,
+  }),
+});
+
+// Answer one simple request coming from the parent.
+channel.respond("get-answer", async function (payload) {
+  return {
+    text: `Child received: ${payload.question}`,
+  };
+});
+
+// Send one one-way message to announce the iframe is ready.
+channel.send("child-ready", {
+  text: "Iframe booted and ready.",
+});</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="card demo-section" id="demo">
+        <div class="section-heading">
+          <h2>Demo</h2>
+          <p>
+            The live example below shows the host window, the embedded iframe,
+            and a shared event stream side by side.
+          </p>
+        </div>
+
+        <div class="workspace-columns">
+          <article class="column-card parent-column">
+            <div class="section-heading">
+              <h2>Parent Window</h2>
+              <p>
+                These controls live in the host page and talk to the iframe
+                through frameport.
+              </p>
+            </div>
+            <div class="control-grid">
+              <button id="send-notice-button">Send notice to iframe</button>
+              <button id="request-profile-button">
+                Request profile from iframe
+              </button>
+              <button id="cycle-theme-button">Push next host theme</button>
+            </div>
+            <dl class="snapshot-grid">
+              <div>
+                <dt>Last child status</dt>
+                <dd id="last-child-status">none yet</dd>
+              </div>
+              <div>
+                <dt>Last iframe profile</dt>
+                <dd id="last-profile-result">not requested yet</dd>
+              </div>
+              <div>
+                <dt>Current theme</dt>
+                <dd id="current-theme-label">midnight</dd>
+              </div>
+              <div>
+                <dt>Message whitelist</dt>
+                <dd>5 shared message names</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="column-card iframe-column">
+            <div class="section-heading">
+              <div class="iframe-heading-row">
+                <div>
+                  <h2>Child Window</h2>
+                  <p>
+                    This middle column is a real embedded
+                    <code>&lt;iframe&gt;</code>. The host cannot call child
+                    functions directly; all interaction goes through
+                    <code>postMessage</code> and frameport.
+                  </p>
+                </div>
+                <div class="iframe-badge">Embedded iframe</div>
+              </div>
+            </div>
+            <iframe
+              id="demo-frame"
+              title="frameport iframe demo"
+              src="./child.html"
+            ></iframe>
+          </article>
+
+          <article class="column-card events-column">
+            <div class="section-heading">
+              <h2>Events</h2>
+              <p>
+                See a combined event stream from both windows and filter by
+                side.
+              </p>
+            </div>
+            <div class="events-toolbar">
+              <div
+                class="filter-group"
+                role="tablist"
+                aria-label="Event filter"
+              >
+                <button
+                  id="filter-both-button"
+                  class="filter-button is-active"
+                  type="button"
+                  data-filter="both"
+                >
+                  Both
+                </button>
+                <button
+                  id="filter-parent-button"
+                  class="filter-button"
+                  type="button"
+                  data-filter="parent"
+                >
+                  Parent
+                </button>
+                <button
+                  id="filter-child-button"
+                  class="filter-button"
+                  type="button"
+                  data-filter="child"
+                >
+                  Child
+                </button>
+              </div>
+              <button id="clear-events-button" class="secondary" type="button">
+                Clear events
+              </button>
+            </div>
+            <div id="events-summary" class="events-summary">
+              Showing both parent and child events.
+            </div>
+            <div id="events-log" class="log-panel"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="card examples-section" id="code-examples">
+        <div class="section-heading">
+          <h2>Code Examples</h2>
+          <p>
+            These examples mirror the scenarios shown in the demo and explain
+            what each method solves, when to reach for it, and how the pieces
+            fit together.
+          </p>
+        </div>
+
+        <div class="examples-grid">
+          <article class="example-card">
+            <div class="example-header">
+              <span class="example-tag">Setup</span>
+              <h3>
+                <code>createChannel()</code> +
+                <code>defaultIFrameGateway()</code>
+              </h3>
+            </div>
+            <p class="example-summary">
+              Use this when you already have access to both windows and want to
+              turn raw <code>postMessage</code> into a named, validated channel.
+            </p>
+            <pre
+              class="example-code"
+            ><code>// Add this on the parent side once iframe.contentWindow exists.
+const channel = frameport.createChannel({
+  id: "app-shell",
+  availableMessages: [
+    "parent-notify",
+    "child-status",
+    "get-profile",
+    "get-host-theme",
+  ],
+  ...frameport.defaultIFrameGateway({
+    currentWindow: window,
+    targetWindow: iframe.contentWindow,
+  }),
+});</code></pre>
+            <div class="example-explanation">
+              <p>
+                <strong>What it solves:</strong> it centralizes the low-level
+                transport wiring. Instead of every caller remembering how to
+                attach listeners, call <code>postMessage</code>, and filter the
+                incoming message shape, you create one channel object that owns
+                the browser-specific details.
+              </p>
+              <p>
+                <strong>How to use it:</strong> both sides of the connection
+                should use the same <code>id</code> and the same set of
+                <code>availableMessages</code>. That gives you a small contract:
+                if code tries to send or listen to a message name outside that
+                list, frameport throws instead of silently failing.
+              </p>
+            </div>
+          </article>
+
+          <article class="example-card">
+            <div class="example-header">
+              <span class="example-tag">One-way events</span>
+              <h3><code>send()</code> + <code>listen()</code></h3>
+            </div>
+            <p class="example-summary">
+              Use this pair for notifications and state broadcasts where the
+              sender does not need a reply.
+            </p>
+            <pre
+              class="example-code"
+            ><code>// Add this on the iframe side if the child should react to parent notices.
+channel.listen("parent-notify", function (message) {
+  console.log("Parent says:", message.payload.text);
+});
+
+// Add this on the parent side when the host wants to notify the iframe.
+channel.send("parent-notify", {
+  text: "The host theme changed to forest.",
+});</code></pre>
+            <div class="example-explanation">
+              <p>
+                <strong>What it solves:</strong> this is the clean replacement
+                for ad hoc event payloads passed directly through
+                <code>postMessage</code>. It works well for notifications such
+                as “theme changed”, “iframe booted”, or “new unread count”.
+              </p>
+              <p>
+                <strong>How to use it:</strong> register a listener on the side
+                that should react, then call <code>send()</code> from the side
+                that emits the update. The listener receives the full channel
+                message, including <code>channelId</code>,
+                <code>messageName</code>, and the typed payload, so debugging
+                stays straightforward.
+              </p>
+            </div>
+          </article>
+
+          <article class="example-card">
+            <div class="example-header">
+              <span class="example-tag">Request / response</span>
+              <h3><code>request()</code> + <code>respond()</code></h3>
+            </div>
+            <p class="example-summary">
+              Use this when one side needs data or work from the other and you
+              want the interaction to feel like an async function call.
+            </p>
+            <pre
+              class="example-code"
+            ><code>// Add this on the iframe side if the child owns the profile data.
+channel.respond("get-profile", async function (payload) {
+  return {
+    id: payload.userId,
+    name: "Ada Lovelace",
+    role: "analysis engine operator",
+  };
+});
+
+// Add this on the parent side when the host needs that profile.
+const response = await channel.request(
+  "get-profile",
+  { timeout: 2000 },
+  { userId: 42 }
+);
+
+console.log(response.payload.name);</code></pre>
+            <div class="example-explanation">
+              <p>
+                <strong>What it solves:</strong> raw
+                <code>postMessage</code> has no built-in concept of “reply to
+                this exact request”. frameport adds a generated
+                <code>requestId</code>, matches the reply for you, and rejects
+                if the timeout expires.
+              </p>
+              <p>
+                <strong>How to use it:</strong> define the responder on the side
+                that owns the data, then call <code>request()</code> from the
+                caller side. This is ideal for “get profile”, “fetch app
+                config”, “ask the host for theme”, or any other API-like
+                interaction between windows.
+              </p>
+            </div>
+          </article>
+
+          <article class="example-card">
+            <div class="example-header">
+              <span class="example-tag">Late iframe load</span>
+              <h3><code>lazyChannel()</code></h3>
+            </div>
+            <p class="example-summary">
+              Use this when the iframe window does not exist yet, but you still
+              want to prepare the channel logic in advance.
+            </p>
+            <pre
+              class="example-code"
+            ><code>// Add this on the parent side when the iframe loads later than the host page.
+const pendingChannel = frameport.lazyChannel({
+  id: "app-shell",
+  availableMessages: ["ready", "get-profile"],
+});
+
+pendingChannel.onInit(function (channel) {
+  channel.listen("ready", function () {
+    console.log("iframe connected");
+  });
+});
+
+iframe.addEventListener("load", function () {
+  pendingChannel.init(
+    frameport.defaultIFrameGateway({
+      currentWindow: window,
+      targetWindow: iframe.contentWindow,
+    })
+  );
+});</code></pre>
+            <div class="example-explanation">
+              <p>
+                <strong>What it solves:</strong> in real pages, the parent often
+                renders before the iframe is ready, so
+                <code>iframe.contentWindow</code> is unavailable during initial
+                setup. <code>lazyChannel()</code> lets you describe the channel
+                early and attach behavior before the transport exists.
+              </p>
+              <p>
+                <strong>How to use it:</strong> create the lazy channel with the
+                shared id and message names, register
+                <code>onInit()</code> callbacks, and call
+                <code>init()</code> once the iframe load event gives you a real
+                target window. This keeps bootstrap code simple and avoids
+                spreading conditional iframe checks across the app.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

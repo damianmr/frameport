@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frameport child demo</title>
+    <link rel="stylesheet" href="./demo.css" />
+    <script src="./frameport.js" defer></script>
+    <script src="./child.js" defer></script>
+  </head>
+  <body class="child-body">
+    <div class="child-shell theme-midnight" id="child-shell">
+      <div class="child-frame-label">You are inside the iframe</div>
+      <div class="child-header">
+        <p class="eyebrow">child window</p>
+        <h1>Embedded app</h1>
+        <p class="hero-copy compact">
+          This page responds to requests, listens for one-way messages, and can
+          request data back from the host. Its events are mirrored to the Events
+          column in the parent page.
+        </p>
+      </div>
+
+      <div class="child-status-row">
+        <div class="status-pill" id="child-theme-status">theme: midnight</div>
+        <div class="status-pill" id="parent-notice-status">
+          no parent notice yet
+        </div>
+      </div>
+
+      <div class="control-grid child-controls">
+        <button id="send-status-button">Send status to parent</button>
+        <button id="request-host-theme-button">Request host theme</button>
+      </div>
+
+      <dl class="snapshot-grid child-snapshot-grid">
+        <div>
+          <dt>Responder</dt>
+          <dd><code>respond("get-profile")</code></dd>
+        </div>
+        <div>
+          <dt>Requester</dt>
+          <dd><code>request("get-host-theme")</code></dd>
+        </div>
+        <div>
+          <dt>Latest host theme</dt>
+          <dd id="latest-host-theme">midnight</dd>
+        </div>
+        <div>
+          <dt>Last requested user</dt>
+          <dd id="last-requested-user">none yet</dd>
+        </div>
+      </dl>
+    </div>
+  </body>
+</html>

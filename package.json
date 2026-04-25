@@ -7,6 +7,7 @@
     "node": "22.x"
   },
   "scripts": {
+    "build:website": "esbuild src/index.ts --bundle --format=iife --global-name=frameport --platform=browser --outfile=docs/frameport.js",
     "lint": "npx prettier --check .",
     "test": "vitest run",
     "test:dev": "vitest"
@@ -26,6 +27,7 @@
   },
   "homepage": "https://github.com/damianmr/frameport#readme",
   "devDependencies": {
+    "esbuild": "0.15.13",
     "prettier": "2.7.1",
     "tiny-emitter": "2.1.0",
     "typescript": "^4.8.4",
