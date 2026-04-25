@@ -1,8 +1,16 @@
 # frameport
 
-Tiny request/response channels for `window.postMessage`.
+Turn `postMessage` into real request/response workflows.
 
-`frameport` is a small utility for communication between a page and an iframe, or between any two window contexts that can talk through `postMessage`. It wraps raw message passing with a small channel abstraction, message name validation, and request/response helpers that feel closer to an async API call.
+`frameport` is a zero-dependency library for communication between a page and an iframe, or between any two window contexts that can talk through `postMessage`. It wraps raw browser messaging in a small channel API so you can move real behavior between windows without re-solving message names, reply handling, timeout behavior, and late iframe startup every time.
+
+## What It Solves
+
+`frameport` is a good fit when you want to:
+
+- keep parent and iframe in sync with one-way updates such as theme changes, ready signals, or host state
+- ask the other side for data and treat the interaction more like a small async API call
+- prepare the communication flow early and connect it once the embedded window becomes available
 
 ## What It Gives You
 
@@ -13,26 +21,136 @@ Tiny request/response channels for `window.postMessage`.
 - a default iframe gateway for `window` + `contentWindow`
 - a `lazyChannel` helper for setups where the target window is not ready yet
 
-## Demo
-
-There is a plain HTML demo under `docs/` that uses a compiled browser bundle of the library.
+## Installation
 
 ```bash
-npm run build:website
+npm install frameport
 ```
 
-Then open `docs/index.html` in a browser.
+## Importing
 
-## Why
+### ESM
 
-Using `postMessage` directly works, but the callsites usually become noisy fast:
+```ts
+import { createChannel, defaultIFrameGateway, lazyChannel } from "frameport";
+```
 
-- you need to agree on message names
-- you need to correlate requests and responses
-- you need timeout handling
-- you need to ignore unrelated messages flying around the window
+### CommonJS
 
-`frameport` keeps that logic small and reusable.
+```js
+const {
+  createChannel,
+  defaultIFrameGateway,
+  lazyChannel,
+} = require("frameport");
+```
+
+There is no API difference between `import` and `require`; the package ships both ESM and CommonJS builds.
+
+### Raw TypeScript source
+
+```ts
+import {
+  createChannel,
+  defaultIFrameGateway,
+  lazyChannel,
+} from "frameport/source";
+```
+
+The `frameport/source` entry is only for toolchains that can consume `.ts` files directly. For normal npm usage, prefer the default `frameport` entry.
+
+## Quickstart
+
+Use the same `id` and the same `availableMessages` on both sides.
+
+### Parent side HTML
+
+```html
+<!DOCTYPE html>
+<html>
+  <body>
+    <iframe id="quickstart-frame" src="./child.html"></iframe>
+
+    <script src="./frameport.js"></script>
+    <script src="./parent.js"></script>
+  </body>
+</html>
+```
+
+### Iframe side HTML
+
+```html
+<!DOCTYPE html>
+<html>
+  <body>
+    <div>Iframe page UI</div>
+
+    <script src="./frameport.js"></script>
+    <script src="./child.js"></script>
+  </body>
+</html>
+```
+
+### `parent.js`
+
+```ts
+const iframe = document.getElementById("quickstart-frame");
+
+const pendingChannel = frameport.lazyChannel({
+  id: "quickstart-demo",
+  availableMessages: ["child-ready", "get-answer"],
+});
+
+pendingChannel.onInit(async function (channel) {
+  channel.listen("child-ready", function (message) {
+    console.log("Child says:", message.payload.text);
+  });
+
+  const response = await channel.request(
+    "get-answer",
+    { timeout: 2000 },
+    { question: "Hello from parent" }
+  );
+
+  console.log("Child answered:", response.payload.text);
+});
+
+iframe.addEventListener("load", function () {
+  if (!iframe.contentWindow) {
+    return;
+  }
+
+  pendingChannel.init(
+    frameport.defaultIFrameGateway({
+      currentWindow: window,
+      targetWindow: iframe.contentWindow,
+    })
+  );
+});
+```
+
+### `child.js`
+
+```ts
+const channel = frameport.createChannel({
+  id: "quickstart-demo",
+  availableMessages: ["child-ready", "get-answer"],
+  ...frameport.defaultIFrameGateway({
+    currentWindow: window,
+    targetWindow: window.parent,
+  }),
+});
+
+channel.respond("get-answer", async function (payload) {
+  return {
+    text: `Child received: ${payload.question}`,
+  };
+});
+
+channel.send("child-ready", {
+  text: "Iframe booted and ready.",
+});
+```
 
 ## Core Concepts
 
@@ -52,63 +170,16 @@ type ChannelMessage<Payload> = {
 - `payload` carries the data
 - `requestId` is added automatically for `request()` / `respond()` flows
 
-## Quick Start
+## Demo
 
-### Parent Window
+There is a plain HTML demo under `docs/` that uses a compiled browser bundle of the library.
 
-```ts
-import { createChannel, defaultIFrameGateway } from "frameport";
-
-const iframe = document.querySelector("iframe");
-
-if (!iframe?.contentWindow) {
-  throw new Error("Iframe is not ready");
-}
-
-const parentChannel = createChannel({
-  id: "app-shell",
-  availableMessages: ["get-user", "theme-changed"],
-  ...defaultIFrameGateway({
-    currentWindow: window,
-    targetWindow: iframe.contentWindow,
-  }),
-});
-
-parentChannel.listen("theme-changed", (message) => {
-  console.log("iframe theme update", message.payload);
-});
-
-const response = await parentChannel.request<
-  { userId: number },
-  { id: number; name: string }
->("get-user", { timeout: 1500 }, { userId: 42 });
-
-console.log(response.payload.name);
+```bash
+npm run build
+npm run build:website
 ```
 
-### Iframe Window
-
-```ts
-import { createChannel, defaultIFrameGateway } from "frameport";
-
-const iframeChannel = createChannel({
-  id: "app-shell",
-  availableMessages: ["get-user", "theme-changed"],
-  ...defaultIFrameGateway({
-    currentWindow: window,
-    targetWindow: window.parent,
-  }),
-});
-
-iframeChannel.respond<{ userId: number }, { id: number; name: string }>(
-  "get-user",
-  async ({ userId }) => {
-    return { id: userId, name: "Ada" };
-  }
-);
-
-iframeChannel.send("theme-changed", { mode: "dark" });
-```
+Then open `docs/index.html` in a browser.
 
 ## API
 
@@ -268,6 +339,7 @@ When no payload is provided, the library normalizes it to `null` on the wire.
 
 ```bash
 npm install
+npm run build
 npm test
 ./node_modules/.bin/tsc --noEmit
 ```

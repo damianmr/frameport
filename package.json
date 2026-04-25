@@ -1,14 +1,59 @@
 {
   "name": "frameport",
   "version": "1.0.0",
-  "description": "Two way channel communication for iframes",
-  "main": "index.js",
+  "description": "Zero-dependency iframe channels over postMessage",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    },
+    "./windowChannel": {
+      "types": "./dist/windowChannel.d.ts",
+      "import": "./dist/windowChannel.mjs",
+      "require": "./dist/windowChannel.cjs",
+      "default": "./dist/windowChannel.mjs"
+    },
+    "./lazyChannel": {
+      "types": "./dist/lazyChannel.d.ts",
+      "import": "./dist/lazyChannel.mjs",
+      "require": "./dist/lazyChannel.cjs",
+      "default": "./dist/lazyChannel.mjs"
+    },
+    "./defaultIFrameGateway": {
+      "types": "./dist/defaultIFrameGateway.d.ts",
+      "import": "./dist/defaultIFrameGateway.mjs",
+      "require": "./dist/defaultIFrameGateway.cjs",
+      "default": "./dist/defaultIFrameGateway.mjs"
+    },
+    "./source": "./src/index.ts",
+    "./source/*": "./src/*.ts",
+    "./package.json": "./package.json"
+  },
   "engines": {
     "node": "22.x"
   },
   "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs",
+    "build:types": "tsc -p tsconfig.build.json",
+    "build:esm": "esbuild src/index.ts src/windowChannel.ts src/lazyChannel.ts src/defaultIFrameGateway.ts --bundle --format=esm --platform=browser --target=es2018 --sourcemap --outdir=dist --out-extension:.js=.mjs",
+    "build:cjs": "esbuild src/index.ts src/windowChannel.ts src/lazyChannel.ts src/defaultIFrameGateway.ts --bundle --format=cjs --platform=browser --target=es2018 --sourcemap --outdir=dist --out-extension:.js=.cjs",
     "build:website": "esbuild src/index.ts --bundle --format=iife --global-name=frameport --platform=browser --outfile=docs/frameport.js",
     "lint": "npx prettier --check .",
+    "prepublishOnly": "npm run build && npm test",
     "test": "vitest run",
     "test:dev": "vitest"
   },
