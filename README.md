@@ -4,6 +4,8 @@ Turn `postMessage` into real request/response workflows.
 
 `frameport` is a zero-dependency library for communication between a page and an iframe, or between any two window contexts that can talk through `postMessage`. It wraps raw browser messaging in a small channel API so you can move real behavior between windows without re-solving message names, reply handling, timeout behavior, and late iframe startup every time.
 
+Live website: https://damianmr.github.io/frameport/
+
 ## What It Solves
 
 `frameport` is a good fit when you want to:
@@ -174,6 +176,8 @@ type ChannelMessage<Payload> = {
 
 There is a plain HTML demo under `docs/` that uses a compiled browser bundle of the library.
 
+The same site is published on GitHub Pages at https://damianmr.github.io/frameport/ and is deployed automatically from `main` through the GitHub Actions workflow in `.github/workflows/deploy-website.yml`.
+
 ```bash
 npm run build
 npm run build:website
@@ -336,6 +340,10 @@ If you need stricter guarantees, provide your own transport functions and valida
 When no payload is provided, the library normalizes it to `null` on the wire.
 
 ## Development
+
+The published package is intended for browser consumers and does not require a specific Node.js version at install time.
+
+For contributors to this repository, the build/test environment is pinned to Node 22 via `.nvmrc` and the GitHub Actions workflows.
 
 ```bash
 npm install

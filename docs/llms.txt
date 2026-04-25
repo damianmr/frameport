@@ -1,0 +1,22 @@
+# Frameport JS
+
+> Frameport JS is a zero-dependency library for parent/iframe communication over window.postMessage. It provides channel-based send/listen and request/respond flows, plus lazy initialization for cases where the iframe window is not available yet.
+
+This website includes a live demo, installation guidance, import guidance, and a minimal quickstart showing the parent page and iframe page working together.
+
+## Docs
+
+- [Website overview](https://damianmr.github.io/frameport/index.html.md): Summary of what Frameport JS solves, installation instructions, import guidance, and links to the live demo.
+- [Quickstart](https://damianmr.github.io/frameport/quickstart.md): Minimal parent/iframe HTML and JavaScript example using lazy initialization on the parent side.
+
+## Package Reference
+
+- [Package README](https://raw.githubusercontent.com/damianmr/frameport/main/README.md): Full project documentation including install, imports, quickstart, API reference, notes, and development commands.
+
+## Demo
+
+- [Interactive website demo](https://damianmr.github.io/frameport/index.html): Live demo showing the parent window, embedded iframe, and a combined event log.
+
+## Optional
+
+- [Embedded iframe page used by the demo](https://damianmr.github.io/frameport/child.html): The child window page loaded by the interactive demo.

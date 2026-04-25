@@ -42,9 +42,6 @@
     "./source/*": "./src/*.ts",
     "./package.json": "./package.json"
   },
-  "engines": {
-    "node": "22.x"
-  },
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs",
@@ -70,7 +67,7 @@
   "bugs": {
     "url": "https://github.com/damianmr/frameport/issues"
   },
-  "homepage": "https://github.com/damianmr/frameport#readme",
+  "homepage": "https://damianmr.github.io/frameport/",
   "devDependencies": {
     "esbuild": "0.15.13",
     "prettier": "2.7.1",
